@@ -1,0 +1,42 @@
+# Secrets and environment files
+.env
+.env.*
+*.env
+!.env.example
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# C++ build artifacts and shared libraries
+build/
+*.so
+*.pyd
+*.dll
+*.dylib
+*.exp
+*.lib
+*.obj
+*.egg-info/
+dist/
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+
+# IDE and OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

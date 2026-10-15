@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  sentinelai-rag:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sentinelai-rag-gateway
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8000
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_ENABLED=true
+      - CACHE_SIMILARITY_THRESHOLD=0.92
+      - RAG_TOP_K=5
+      - PII_REDACTION_ENABLED=true
+      - PROMPT_INJECTION_ENABLED=true
+      - OUTPUT_GUARD_ENABLED=true
+      - USE_LOCAL_SIMULATOR=true
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: sentinelai-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis-data:

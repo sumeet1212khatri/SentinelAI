@@ -1,0 +1,72 @@
+direction right
+
+// Client & Security Layer
+ClientLayer [label: "Client & Presentation Layer", color: yellow] {
+  WebUI [label: "Apple visionOS Frosted Glass UI\n(Live Telemetry & Quality Chip)", icon: browser]
+  RabbitVault [label: "3D Interactive Rabbit Vault\n(Three.js + WebCrypto AES-256-GCM)", icon: key]
+  RESTClient [label: "REST / SSE Gateway API\n(/v1/rag/query & /v1/rag/stream)", icon: terminal]
+}
+
+// Layer 1: Edge Security & Guardrails (<0.5ms)
+GuardrailLayer [label: "1. Pre-Inference Guardrails (<0.5ms)", color: red] {
+  RateLimiter [label: "Redis Lua Token-Bucket\n(60 / 600 / 3,000 RPM)", icon: shield]
+  InjectionGuard [label: "Prompt Injection Blocker\n(100% Interception | 0% FP)", icon: lock]
+  PIIRedactor [label: "Luhn + Regex PII Redactor\n(94.7us p95 | ISO/IEC 7812)", icon: eye-off]
+}
+
+// Layer 2: Vectorization & C++17 AVX2 Semantic Cache
+CacheLayer [label: "2. Vectorization & SIMD Semantic Cache", color: purple] {
+  ONNXEmbedder [label: "all-MiniLM-L6-v2 Embedder\n384-Dim L2 Unit Vector (vq)", icon: cpu]
+  SIMDCache [label: "C++17 AVX2 Semantic Cache\n(Cosine >= 0.86 | 8.40us p50)", icon: zap]
+}
+
+// Layer 3: Advanced 4-Pillar Production RAG Engine
+ProductionRAG [label: "3. Advanced 4-Pillar Production RAG Engine", color: green] {
+  QueryRewriter [label: "Pillar 1: Query Rewriter\n(Domain Expansion & Policy Acronyms)", icon: edit-3]
+  BM25Index [label: "Pillar 2a: Okapi BM25 Index\n(1,467 Terms | k1=1.5, b=0.75)", icon: search]
+  AVX2Retriever [label: "Pillar 2b: C++17 AVX2 SIMD\n(80 Dense Chunks | 9.77us)", icon: database]
+  RRFFusion [label: "Pillar 2c: RRF Fusion (k=60)\n(0.60 Dense + 0.40 Sparse)", icon: git-merge]
+  NeuralReranker [label: "Pillar 3: Cross-Attention Reranker\n(Code Alignment + Window Density)", icon: sliders]
+  QualityGate [label: "Pillar 4: Retrieval Quality Gate\n(Sufficiency Score >= 0.35 | Grounding)", icon: award]
+}
+
+// Layer 4: Resilient Upstream LLM Router & Storage
+UpstreamLayer [label: "4. Multi-Provider Router & Output Guard", color: blue] {
+  CircuitBreaker [label: "Sliding-Window Circuit Breakers\n(Trip > 2000ms or > 5% Err)", icon: activity]
+  LLMRouting [label: "Dynamic BYOK LLM Router\n(OpenAI / Groq / Anthropic / Gemini)", icon: cloud]
+  LocalSim [label: "Deterministic Offline Fallback\n(Zero External Outages)", icon: server]
+  OutputGuard [label: "Output Sanitizer &\nNegative-Cache Filter", icon: check-circle]
+}
+
+// Connections & Data Flow
+ClientLayer.WebUI -> ClientLayer.RabbitVault: "Taps 3D Rabbit (BYOK)"
+ClientLayer.RabbitVault -> ClientLayer.WebUI: "Decrypted Client Keys"
+ClientLayer.WebUI -> GuardrailLayer.RateLimiter: "Raw Prompt + Headers"
+ClientLayer.RESTClient -> GuardrailLayer.RateLimiter: "API Request"
+
+GuardrailLayer.RateLimiter -> GuardrailLayer.InjectionGuard: "Token Allowed"
+GuardrailLayer.InjectionGuard -> GuardrailLayer.PIIRedactor: "Clean Intent"
+GuardrailLayer.PIIRedactor -> CacheLayer.ONNXEmbedder: "Sanitized Text\n([CARD/SSN_REDACTED])"
+
+CacheLayer.ONNXEmbedder -> CacheLayer.SIMDCache: "Lookup Vector vq"
+CacheLayer.SIMDCache -> ClientLayer.WebUI: "CACHE HIT (24.2ms | $0.00)"
+
+// Cache Miss Path -> Production RAG
+CacheLayer.SIMDCache -> ProductionRAG.QueryRewriter: "CACHE MISS"
+ProductionRAG.QueryRewriter -> ProductionRAG.BM25Index: "Rewritten Query Text"
+CacheLayer.ONNXEmbedder -> ProductionRAG.AVX2Retriever: "Reused Vector vq (Zero Double-Emb)"
+
+ProductionRAG.BM25Index -> ProductionRAG.RRFFusion: "Top-20 Sparse Candidates"
+ProductionRAG.AVX2Retriever -> ProductionRAG.RRFFusion: "Top-20 Dense Candidates"
+ProductionRAG.RRFFusion -> ProductionRAG.NeuralReranker: "Merged Rank List"
+ProductionRAG.NeuralReranker -> ProductionRAG.QualityGate: "Top-K High-Precision Chunks"
+
+ProductionRAG.QualityGate -> UpstreamLayer.CircuitBreaker: "Verified Context Chunks\n(Quality Score Evaluated)"
+UpstreamLayer.CircuitBreaker -> UpstreamLayer.LLMRouting: "Healthy Circuit (CLOSED)"
+UpstreamLayer.CircuitBreaker -> UpstreamLayer.LocalSim: "Tripped Circuit (OPEN)"
+
+UpstreamLayer.LLMRouting -> UpstreamLayer.OutputGuard: "LLM Stream / Completion"
+UpstreamLayer.LocalSim -> UpstreamLayer.OutputGuard: "Deterministic Response"
+
+UpstreamLayer.OutputGuard -> CacheLayer.SIMDCache: "Cache Store (If Grounded)"
+UpstreamLayer.OutputGuard -> ClientLayer.WebUI: "Stream Response + Quality Telemetry"

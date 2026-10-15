@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: sentinelai-rag
+    runtime: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon
+    envVars:
+      - key: USE_LOCAL_SIMULATOR
+        value: "true"
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: MAX_TOKENS
+        value: "1200"
+      - key: CACHE_SIMILARITY_THRESHOLD
+        value: "0.92"
+      - key: RAG_TOP_K
+        value: "4"
